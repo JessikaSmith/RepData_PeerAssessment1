@@ -1,0 +1,117 @@
+---
+title: "Assignment 1"
+author: "Mary Smith"
+date: "Sunday, July 19, 2015"
+output: html_document
+---
+
+
+In this assignment we need to process activity data.
+
+##Loading and preprocessing the data
+
+The first thing is to load the data. I store it into a variable called `set`. 
+
+```{r}
+set <- read.csv("activity.csv")
+head(set)
+```
+
+##What is mean total number of steps taken per day?
+
+Calculating the total number of steps taken per day using the tapply function. To avoid na's I used `na.rm = TRUE` parameter.
+
+```{r}
+daySteps <- tapply(set$steps, set$date, sum)
+```
+
+Making a histogram.
+
+```{r}
+hist(daySteps, col = "light blue", main = paste("Histogram of" , "steps per day"), xlab = "number of steps")
+```
+
+Calculating the mean and the median of the total number of steps.
+
+```{r}
+mean(daySteps, na.rm = TRUE)
+median(daySteps, na.rm = TRUE)
+```
+
+##What is the average daily activity pattern?
+
+Getting average number of steps.
+
+```{r}
+AvSteps <- aggregate(steps ~ interval, set, mean)
+```
+
+Making a time series plot of the 5-minute interval.
+
+```{r}
+plot(AvSteps$interval, AvSteps$steps, type = 'l', col = "dark green", main = "Daily activity pattern", xlab = "Interval", ylab = "Number of steps" )
+```
+
+The maximim number of steps is in the 835 interval.
+
+```{r}
+subset(AvSteps, steps == max(AvSteps$steps))
+```
+
+##Imputing missing values
+The only column which has na's is `steps`. So there are 2304 rows with unknown values.
+
+```{r}
+summary(set)
+```
+
+Replacing na's with the mean for corresponding day using the `AvSteps`.
+
+```{r}
+for (i in 1:nrow(set)){
+        if (is.na(set$steps[i])){
+                val <- set$interval[i]
+                id <- which(AvSteps$interval == val)
+                val <- AvSteps$steps[id]
+                set$steps[i] <- val
+                }
+        }
+```
+
+Making a histogram.
+
+```{r}
+hist_set <- tapply(set$steps, set$date, sum)
+hist(hist_set, col = "gray", main = paste("Histogram of" , "steps per day"), xlab = "number of steps")
+```
+
+Calculating the mean and the median. There is no change in mean value comparing to original dataset and unsignificant change in median.
+
+```{r}
+mean(hist_set)
+median(hist_set)
+```
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+Creating a new factor variable to indicate type of the day
+
+```{r}
+Sys.setlocale("LC_TIME", "English")
+set$date <- as.Date(strptime(set$date, format="%Y-%m-%d"))
+days <- weekdays(set$date)
+set$day_type <- ifelse(days == "Saturday" | days == "Sunday", "Weekend","Weekday")
+AvSteps <- aggregate(set$steps, by = list(set$interval, set$day_type),mean)
+names(AvSteps) <- c("interval", "day_type", "steps")
+```
+
+Making a panel plot containing a time series plot of the 5-minute interval.
+
+```{r}
+library(lattice)
+xyplot(steps ~ interval | day_type, AvSteps, type = "l", layout = c(1, 2), xlab = "Interval", ylab = "Number of steps")
+```
+
+
+
+
